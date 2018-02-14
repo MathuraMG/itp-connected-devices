@@ -3,6 +3,7 @@ const app = express();
 const mysql = require('mysql');
 var cors = require('cors');
 var bodyParser = require('body-parser');
+var md5 = require('md5');
 app.use(cors());
 
 const connection = mysql.createConnection({
@@ -28,7 +29,8 @@ app.post("/add", function(req,res) {
   let macAddress = req.body.macAddress;
   let sessionKey = req.body.sessionKey;
   let data = JSON.stringify(req.body.data);
-
+  let toBeHashed = new Date().toString();
+  let transactionID = md5(toBeHashed);
   //now we will approve the client
   if(macAddress in approved_conn && approved_conn[macAddress] == sessionKey){
     let query = "INSERT INTO conn_dev.readings VALUES ('"
@@ -39,10 +41,13 @@ app.post("/add", function(req,res) {
     + "CURTIME()"
     + ",'"
     + data
+    + "', '"
+    + transactionID
     + "');";
+    console.log(query);
     connection.connect((err) => {
       connection.query(query, function(error, results, fields){
-        res.send(200, "👌");
+        res.send(200, {"response":"👌",  "transactionID": transactionID});
       });
     });
   } else {
@@ -67,6 +72,30 @@ app.post("/data", function(req,res) {
   } else {
     res.send(403,"💩");
   }
+})
+
+
+app.delete("/delete", function(req,res) {
+  let macAddress = req.body.macAddress;
+  let sessionKey = req.body.sessionKey;
+  let transactionID = req.body.transactionID;
+  if(macAddress in approved_conn && approved_conn[macAddress] == sessionKey){
+    connection.connect((err) => {
+      query = 'delete from conn_dev.readings where sessionKey="' + sessionKey + '" and macAddress="' + macAddress + '" and transactionID="' + transactionID + '";';
+      console.log(query);
+      connection.query(query, function(error, results, fields){
+        if(results.affectedRows > 0) {
+          res.send(200, "👌");
+        }
+        else {
+          res.send(200, "This row does not exist");
+        }
+      });
+    });
+  } else {
+    res.send(403,"💩");
+  }
+
 })
 
 app.get("/hello", function(req,res) {
