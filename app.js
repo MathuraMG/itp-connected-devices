@@ -26,6 +26,11 @@ var server = app.listen(process.env.PORT || 8081, function () {
 });
 
 app.post("/add", function(req,res) {
+  console.log(req.connection.remoteAddress);
+  console.log(req.headers['user-agent']);
+  let date = new Date();
+  console.log(date);
+
   let macAddress = req.body.macAddress;
   let sessionKey = req.body.sessionKey;
   let data = JSON.stringify(req.body.data);
